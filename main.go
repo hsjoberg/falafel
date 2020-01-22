@@ -15,7 +15,7 @@ import (
 )
 
 const toolName = "falafel"
-const version = "0.7"
+const version = "0.7-hampus"
 
 var versionString = fmt.Sprintf("%s %s", toolName, version)
 

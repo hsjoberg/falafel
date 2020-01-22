@@ -114,6 +114,7 @@ func get{{$lis | UpperCase}}Conn() (*grpc.ClientConn, func(), error) {
 	// Create a dial options array.
 	opts := []grpc.DialOption{
 		grpc.WithContextDialer(dialer),
+		grpc.WithBackoffMaxDelay(10*time.Second),
 	}
 
 	// Apply any global server options.
