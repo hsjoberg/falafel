@@ -26,6 +26,24 @@ import (
 
 	"{{.TargetPkg}}"
 )
+
+/*
+#ifndef CALLBACK_DEFS_H
+#define CALLBACK_DEFS_H
+
+#include <stdlib.h>
+
+typedef void (*ResponseFunc)(const char*, int);
+typedef void (*ErrorFunc)(const char*);
+
+typedef struct CCallback {
+    ResponseFunc onResponse;
+    ErrorFunc onError;
+} CCallback;
+
+#endif // CALLBACK_DEFS_H
+*/
+import "C"
 `))
 
 // jsHeaderParams is a struct that holds all data passed in to the jsHeader
@@ -366,6 +384,11 @@ func {{.ApiPrefix}}{{.MethodName}}(msg []byte, callback Callback) {
 		},
 	}
 	s.start(msg, callback)
+}
+
+//export {{.ApiPrefix}}{{.MethodName}}C
+func {{.ApiPrefix}}{{.MethodName}}C(data *C.char, length C.int, callback C.CCallback) {
+	{{.ApiPrefix}}{{.MethodName}}(convertCCharToByte(data, length), WrapCallback(callback))
 }
 `))
 
