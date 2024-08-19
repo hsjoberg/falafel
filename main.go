@@ -13,7 +13,7 @@ import (
 )
 
 const toolName = "falafel"
-const version = "0.9.2"
+const version = "0.0.0-cshared6"
 
 var versionString = fmt.Sprintf("%s %s", toolName, version)
 
@@ -57,6 +57,12 @@ func main() {
 			// requested.
 			if param["mem_rpc"] == "1" {
 				genMemRPC(gen, f, param)
+			}
+
+			// If falafel has been configured to generate CGO bindings,
+			// generate CGO helper functions and datatypes.
+			if param["cgo"] == "1" {
+				genCgoUtils(gen, f, param)
 			}
 		}
 
@@ -164,6 +170,11 @@ func genMobileStubs(gen *protogen.Plugin, file *protogen.File,
 		apiPrefix = true
 	}
 
+	cgoBindings := false
+	if param["cgo"] == "1" {
+		cgoBindings = true
+	}
+
 	// For each service, we'll create a file with the generated API.
 	for _, service := range file.Services {
 		name := service.GoName
@@ -183,11 +194,12 @@ func genMobileStubs(gen *protogen.Plugin, file *protogen.File,
 
 		// Create the file header.
 		params := headerParams{
-			ToolName:  versionString,
-			FileName:  filename,
-			Package:   pkg,
-			TargetPkg: targetPkg,
-			BuildTags: buildTags,
+			ToolName:    versionString,
+			FileName:    filename,
+			Package:     pkg,
+			TargetPkg:   targetPkg,
+			BuildTags:   buildTags,
+			CgoBindings: cgoBindings,
 		}
 		if err := headerTemplate.Execute(g, params); err != nil {
 			log.Fatal(err)
@@ -238,6 +250,7 @@ func genMobileStubs(gen *protogen.Plugin, file *protogen.File,
 				MethodName:  methodName,
 				RequestType: inputType,
 				Comment:     godoc[methodName],
+				CgoBindings: cgoBindings,
 			}
 			if apiPrefix {
 				rpcParams.ApiPrefix = service.GoName
@@ -421,6 +434,29 @@ func genMemRPC(gen *protogen.Plugin, file *protogen.File,
 		log.Fatal(err)
 	}
 }
+
+
+func genCgoUtils(gen *protogen.Plugin, file *protogen.File,
+	param map[string]string) {
+
+	// We need package_name and target_package in order to continue.
+	pkg := param["package_name"]
+	if pkg == "" {
+		log.Fatal("package name not set")
+	}
+
+	// Create cgo_utils_geneated.go file
+	filename := "./cgo_utils_generated.go"
+	g := gen.NewGeneratedFile(filename, file.GoImportPath)
+	p := cgoUtilsParams{
+		ToolName: versionString,
+		Package:  pkg,
+	}
+	if err := cgoUtilsTemplate.Execute(g, p); err != nil {
+		log.Fatal(err)
+	}
+}
+
 
 func split(parameter string, c string) map[string]string {
 	param := make(map[string]string)
