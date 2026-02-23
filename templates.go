@@ -878,6 +878,20 @@ import (
     "unsafe"
 )
 
+func callbackBytesToC(data []byte) *C.char {
+	if len(data) == 0 {
+		return (*C.char)(C.calloc(1, 1))
+	}
+	return (*C.char)(C.CBytes(data))
+}
+
+//export lndFree
+func lndFree(ptr unsafe.Pointer) {
+	if ptr != nil {
+		C.free(ptr)
+	}
+}
+
 //
 // Callback
 // Helper code to bridge between the C callback and the Go callback.
@@ -891,15 +905,7 @@ type cCallback struct {
 
 func (c *cCallback) OnResponse(data []byte) {
 	if c.onResponse != nil {
-		var ptr *C.char
-		if len(data) == 0 {
-			// Allocate a zero byte if data is empty
-			tmp := C.calloc(1, 1)
-			ptr = (*C.char)(tmp)
-		} else {
-			// Safe to get pointer to first element if data is not empty
-			ptr = (*C.char)(unsafe.Pointer(&data[0]))
-		}
+		ptr := callbackBytesToC(data)
 
 		C.bridgeResponseFunc(c.onResponse, c.responseContext, ptr, C.int(len(data)))
 	}
@@ -908,7 +914,6 @@ func (c *cCallback) OnResponse(data []byte) {
 func (c *cCallback) OnError(err error) {
 	if c.onError != nil {
 		cErr := C.CString(err.Error())
-		defer C.free(unsafe.Pointer(cErr))
 		C.bridgeErrorFunc(c.onError, c.errorContext, cErr)
 	}
 }
@@ -936,15 +941,7 @@ type cRecvStream struct {
 
 func (c *cRecvStream) OnResponse(data []byte) {
 	if c.onResponse != nil {
-		var ptr *C.char
-		if len(data) == 0 {
-			// Allocate a zero byte if data is empty
-			tmp := C.calloc(1, 1)
-			ptr = (*C.char)(tmp)
-		} else {
-			// Safe to get pointer to first element if data is not empty
-			ptr = (*C.char)(unsafe.Pointer(&data[0]))
-		}
+		ptr := callbackBytesToC(data)
 
 		C.bridgeResponseFunc(c.onResponse, c.responseContext, ptr, C.int(len(data)))
 	}
@@ -953,7 +950,6 @@ func (c *cRecvStream) OnResponse(data []byte) {
 func (c *cRecvStream) OnError(err error) {
 	if c.onError != nil {
 		cErr := C.CString(err.Error())
-		defer C.free(unsafe.Pointer(cErr))
 		C.bridgeErrorFunc(c.onError, c.errorContext, cErr)
 	}
 }
