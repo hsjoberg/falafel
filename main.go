@@ -13,7 +13,7 @@ import (
 )
 
 const toolName = "falafel"
-const version = "0.0.0-cgo1"
+const version = "0.0.0-cgo2"
 
 var versionString = fmt.Sprintf("%s %s", toolName, version)
 
@@ -435,7 +435,6 @@ func genMemRPC(gen *protogen.Plugin, file *protogen.File,
 	}
 }
 
-
 func genCgoUtils(gen *protogen.Plugin, file *protogen.File,
 	param map[string]string) {
 
@@ -456,7 +455,6 @@ func genCgoUtils(gen *protogen.Plugin, file *protogen.File,
 		log.Fatal(err)
 	}
 }
-
 
 func split(parameter string, c string) map[string]string {
 	param := make(map[string]string)

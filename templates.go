@@ -35,6 +35,7 @@ import (
 #define CALLBACK_DEFS_H
 
 #include <stdlib.h>
+#include <stdint.h>
 
 typedef void (*ResponseFunc)(void* context, const char* data, int length);
 typedef void (*ErrorFunc)(void* context, const char* error);
@@ -42,15 +43,15 @@ typedef void (*ErrorFunc)(void* context, const char* error);
 typedef struct CCallback {
     ResponseFunc onResponse;
     ErrorFunc onError;
-    void* responseContext;
-    void* errorContext;
+    uintptr_t responseContext;
+    uintptr_t errorContext;
 } CCallback;
 
 typedef struct CRecvStream {
     ResponseFunc onResponse;
     ErrorFunc onError;
-    void* responseContext;
-    void* errorContext;
+    uintptr_t responseContext;
+    uintptr_t errorContext;
 } CRecvStream;
 
 #endif // CALLBACK_DEFS_H
@@ -822,32 +823,33 @@ package {{.Package}}
 #define CALLBACK_DEFS_H
 
 #include <stdlib.h>
+#include <stdint.h>
 
 typedef void (*ResponseFunc)(void* context, const char* data, int length);
 typedef void (*ErrorFunc)(void* context, const char* error);
 
-static inline void bridgeResponseFunc(ResponseFunc f, void* context, const char* data, int length) {
-    if (f) f(context, data, length);
+static inline void bridgeResponseFunc(ResponseFunc f, uintptr_t context, const char* data, int length) {
+    if (f) f((void*)context, data, length);
 }
 
-static inline void bridgeErrorFunc(ErrorFunc f, void* context, const char* error) {
-    if (f) f(context, error);
+static inline void bridgeErrorFunc(ErrorFunc f, uintptr_t context, const char* error) {
+    if (f) f((void*)context, error);
 }
 
 // Callback
 typedef struct CCallback {
     ResponseFunc onResponse;
     ErrorFunc onError;
-    void* responseContext;
-    void* errorContext;
+    uintptr_t responseContext;
+    uintptr_t errorContext;
 } CCallback;
 
 // RecvStream
 typedef struct CRecvStream {
     ResponseFunc onResponse;
     ErrorFunc onError;
-    void* responseContext;
-    void* errorContext;
+    uintptr_t responseContext;
+    uintptr_t errorContext;
 } CRecvStream;
 
 // SendStream
@@ -899,8 +901,8 @@ func lndFree(ptr unsafe.Pointer) {
 type cCallback struct {
     onResponse      C.ResponseFunc
     onError         C.ErrorFunc
-    responseContext unsafe.Pointer
-    errorContext    unsafe.Pointer
+    responseContext C.uintptr_t
+    errorContext    C.uintptr_t
 }
 
 func (c *cCallback) OnResponse(data []byte) {
@@ -935,8 +937,8 @@ func WrapCallbackCgo(callback C.CCallback) Callback {
 type cRecvStream struct {
     onResponse      C.ResponseFunc
     onError         C.ErrorFunc
-    responseContext unsafe.Pointer
-    errorContext    unsafe.Pointer
+    responseContext C.uintptr_t
+    errorContext    C.uintptr_t
 }
 
 func (c *cRecvStream) OnResponse(data []byte) {
