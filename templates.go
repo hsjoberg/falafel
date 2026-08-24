@@ -404,8 +404,8 @@ func {{.ApiPrefix}}{{.MethodName}}(msg []byte, callback Callback) {
 
 {{if .CgoBindings}}
 //export {{LowerCase (print .ApiPrefix .MethodName)}}
-func {{LowerCase (print .ApiPrefix .MethodName)}}(data *C.char, length C.int, callback C.CCallback) {
-	goCallback := WrapCallbackCgo(callback)
+func {{LowerCase (print .ApiPrefix .MethodName)}}(data *C.char, length C.int, callback *C.CCallback) {
+	goCallback := WrapCallbackCgo(*callback)
 	goData, err := cBytesToGo(unsafe.Pointer(data), int(length))
 	if err != nil {
 		goCallback.OnError(err)
@@ -456,8 +456,8 @@ func {{.ApiPrefix}}{{.MethodName}}(msg []byte, rStream RecvStream) {
 
 {{if .CgoBindings}}
 //export {{LowerCase (print .ApiPrefix .MethodName)}}
-func {{LowerCase (print .ApiPrefix .MethodName)}}(data *C.char, length C.int, rStream C.CRecvStream) {
-	goRecvStream := WrapRecvStreamCgo(rStream)
+func {{LowerCase (print .ApiPrefix .MethodName)}}(data *C.char, length C.int, rStream *C.CRecvStream) {
+	goRecvStream := WrapRecvStreamCgo(*rStream)
 	goData, err := cBytesToGo(unsafe.Pointer(data), int(length))
 	if err != nil {
 		goRecvStream.OnError(err)
@@ -515,8 +515,8 @@ func {{.ApiPrefix}}{{.MethodName}}(rStream RecvStream) (SendStream, error) {
 
 {{if .CgoBindings}}
 //export {{LowerCase (print .ApiPrefix .MethodName)}}
-func {{LowerCase (print .ApiPrefix .MethodName)}}(rStream C.CRecvStream) C.uintptr_t /*(C.uintptr_t, C.int)*/ {
-    goRecvStream := WrapRecvStreamCgo(rStream)
+func {{LowerCase (print .ApiPrefix .MethodName)}}(rStream *C.CRecvStream) C.uintptr_t /*(C.uintptr_t, C.int)*/ {
+    goRecvStream := WrapRecvStreamCgo(*rStream)
 
     sendStream, err := {{.ApiPrefix}}{{.MethodName}}(goRecvStream)
     if err != nil {
