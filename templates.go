@@ -405,7 +405,14 @@ func {{.ApiPrefix}}{{.MethodName}}(msg []byte, callback Callback) {
 {{if .CgoBindings}}
 //export {{LowerCase (print .ApiPrefix .MethodName)}}
 func {{LowerCase (print .ApiPrefix .MethodName)}}(data *C.char, length C.int, callback C.CCallback) {
-	{{.ApiPrefix}}{{.MethodName}}(C.GoBytes(unsafe.Pointer(data), length), WrapCallbackCgo(callback))
+	goCallback := WrapCallbackCgo(callback)
+	goData, err := cBytesToGo(unsafe.Pointer(data), int(length))
+	if err != nil {
+		goCallback.OnError(err)
+		return
+	}
+
+	{{.ApiPrefix}}{{.MethodName}}(goData, goCallback)
 }
 {{end}}`))
 
@@ -450,7 +457,14 @@ func {{.ApiPrefix}}{{.MethodName}}(msg []byte, rStream RecvStream) {
 {{if .CgoBindings}}
 //export {{LowerCase (print .ApiPrefix .MethodName)}}
 func {{LowerCase (print .ApiPrefix .MethodName)}}(data *C.char, length C.int, rStream C.CRecvStream) {
-	{{.ApiPrefix}}{{.MethodName}}(C.GoBytes(unsafe.Pointer(data), length), WrapRecvStreamCgo(rStream))
+	goRecvStream := WrapRecvStreamCgo(rStream)
+	goData, err := cBytesToGo(unsafe.Pointer(data), int(length))
+	if err != nil {
+		goRecvStream.OnError(err)
+		return
+	}
+
+	{{.ApiPrefix}}{{.MethodName}}(goData, goRecvStream)
 }
 {{end}}`))
 
@@ -876,6 +890,7 @@ static inline void freeCSendStream(CSendStream* stream) {
 */
 import "C"
 import (
+    "errors"
     "sync"
     "unsafe"
 )
@@ -885,6 +900,22 @@ func callbackBytesToC(data []byte) *C.char {
 		return (*C.char)(C.calloc(1, 1))
 	}
 	return (*C.char)(C.CBytes(data))
+}
+
+func cBytesToGo(data unsafe.Pointer, length int) ([]byte, error) {
+	if length < 0 {
+		return nil, errors.New("invalid length")
+	}
+
+	if length > 0 && data == nil {
+		return nil, errors.New("nil pointer with non-zero length")
+	}
+
+	if length == 0 {
+		return []byte{}, nil
+	}
+
+	return C.GoBytes(data, C.int(length)), nil
 }
 
 //export lndFree
@@ -992,7 +1023,12 @@ func SendStreamC(streamPtr C.uintptr_t, data *C.char, length C.int) C.int {
 	cSend.mu.Lock()
 	defer cSend.mu.Unlock()
 
-	err := cSend.goSendStream.Send(C.GoBytes(unsafe.Pointer(data), length))
+	goData, err := cBytesToGo(unsafe.Pointer(data), int(length))
+	if err != nil {
+	    return C.int(-1)
+	}
+
+	err = cSend.goSendStream.Send(goData)
 	if err != nil {
 	    return C.int(-1)
 	}
